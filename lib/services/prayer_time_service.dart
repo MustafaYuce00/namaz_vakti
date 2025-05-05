@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:namaz_vakti/models/city.dart';
 import 'package:namaz_vakti/models/prayer_time.dart';
@@ -280,14 +281,49 @@ class PrayerTimeService {
     final now = DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     
+    // Tarihe göre değişen namaz vakitleri oluştur
+    // Yılın günü sayısına göre değişimler ekleyerek her gün farklı vakitler oluşturalım
+    final dayOfYear = _getDayOfYear(now);
+    
+    // Her ay için yaklaşık 1-2 dakika değişiklik olsun
+    final monthOffset = now.month - 1; // 0-11 arası
+    
+    // Mevsimsel değişimleri yansıtalım (kış-yaz değişimleri)
+    // Kuzey yarımkürede kışın imsak geç, yatsı erken; yazın tam tersi
+    final seasonalFactor = _getSeasonalFactor(now);
+    
+    // İmsak vakti (mevsime göre 03:30-05:30 arası değişsin)
+    final fajrHour = 4 + ((seasonalFactor * 60).round() / 60).floor();
+    final fajrMinute = ((10 + dayOfYear % 20 - monthOffset) % 60).round();
+    
+    // Güneş doğuşu (mevsime göre 05:00-07:00 arası değişsin)
+    final sunriseHour = 5 + ((seasonalFactor * 60 + 30).round() / 60).floor();
+    final sunriseMinute = ((45 + dayOfYear % 15 - monthOffset) % 60).round();
+    
+    // Öğle vakti (11:50-13:10 arası değişsin)
+    final dhuhrHour = 12 + (dayOfYear % 4 == 0 ? 0 : 0);
+    final dhuhrMinute = ((50 + dayOfYear % 20) % 60).round();
+    
+    // İkindi vakti (15:30-17:30 arası değişsin)
+    final asrHour = 16 + ((seasonalFactor * 40).round() / 60).floor();
+    final asrMinute = ((30 + dayOfYear % 25 + monthOffset) % 60).round();
+    
+    // Akşam vakti (mevsime göre 17:00-20:30 arası değişsin)
+    final maghribHour = 18 + ((seasonalFactor * 100).round() / 60).floor();
+    final maghribMinute = ((40 + dayOfYear % 20 - monthOffset) % 60).round();
+    
+    // Yatsı vakti (mevsime göre 18:30-22:30 arası değişsin)
+    final ishaHour = 20 + ((seasonalFactor * 120).round() / 60).floor();
+    final ishaMinute = ((10 + dayOfYear % 30 - monthOffset) % 60).round();
+    
     return PrayerTime(
       date: dateStr,
-      fajr: '04:12',
-      sunrise: '05:47',
-      dhuhr: '12:55',
-      asr: '16:42',
-      maghrib: '19:54',
-      isha: '21:23',
+      fajr: '${fajrHour.toString().padLeft(2, '0')}:${fajrMinute.toString().padLeft(2, '0')}',
+      sunrise: '${sunriseHour.toString().padLeft(2, '0')}:${sunriseMinute.toString().padLeft(2, '0')}',
+      dhuhr: '${dhuhrHour.toString().padLeft(2, '0')}:${dhuhrMinute.toString().padLeft(2, '0')}',
+      asr: '${asrHour.toString().padLeft(2, '0')}:${asrMinute.toString().padLeft(2, '0')}',
+      maghrib: '${maghribHour.toString().padLeft(2, '0')}:${maghribMinute.toString().padLeft(2, '0')}',
+      isha: '${ishaHour.toString().padLeft(2, '0')}:${ishaMinute.toString().padLeft(2, '0')}',
     );
   }
   
@@ -300,22 +336,80 @@ class PrayerTimeService {
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     
     for (int day = 1; day <= daysInMonth; day++) {
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+      // Her gün için doğru tarih oluştur
+      final date = DateTime(now.year, now.month, day);
+      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
       
-      // Her gün için rastgele değişiklikler içeren veri oluştur
+      // Günün yıl içindeki gün sayısı
+      final dayOfYear = _getDayOfYear(date);
+      
+      // Mevsimsel faktör (kış-yaz değişimleri)
+      final seasonalFactor = _getSeasonalFactor(date);
+      
+      // İmsak vakti (mevsime göre 03:30-05:30 arası değişsin)
+      final fajrHour = 4 + ((seasonalFactor * 60).round() / 60).floor();
+      final fajrMinute = ((10 + dayOfYear % 20 - now.month % 3) % 60).round();
+      
+      // Güneş doğuşu (mevsime göre 05:00-07:00 arası değişsin)
+      final sunriseHour = 5 + ((seasonalFactor * 60 + 30).round() / 60).floor();
+      final sunriseMinute = ((40 + day % 15) % 60).round();
+      
+      // Öğle vakti (11:50-13:10 arası değişsin)
+      final dhuhrHour = 12 + (dayOfYear % 4 == 0 ? 0 : 0);
+      final dhuhrMinute = ((45 + day % 20) % 60).round();
+      
+      // İkindi vakti (15:30-17:30 arası değişsin)
+      final asrHour = 16 + ((seasonalFactor * 40).round() / 60).floor();
+      final asrMinute = ((30 + day % 15) % 60).round();
+      
+      // Akşam vakti (mevsime göre 17:00-20:30 arası değişsin)
+      final maghribHour = 18 + ((seasonalFactor * 100).round() / 60).floor();
+      final maghribMinute = ((30 + day % 20) % 60).round();
+      
+      // Yatsı vakti (mevsime göre 18:30-22:30 arası değişsin)
+      final ishaHour = 20 + ((seasonalFactor * 120).round() / 60).floor();
+      final ishaMinute = ((10 + day % 25) % 60).round();
+      
       final prayerTime = PrayerTime(
         date: dateStr,
-        fajr: '04:${(10 + day % 10).toString().padLeft(2, '0')}',
-        sunrise: '05:${(45 + day % 15).toString().padLeft(2, '0')}',
-        dhuhr: '12:${(50 + day % 10).toString().padLeft(2, '0')}',
-        asr: '16:${(40 + day % 10).toString().padLeft(2, '0')}',
-        maghrib: '19:${(50 + day % 10).toString().padLeft(2, '0')}',
-        isha: '21:${(20 + day % 10).toString().padLeft(2, '0')}',
+        fajr: '${fajrHour.toString().padLeft(2, '0')}:${fajrMinute.toString().padLeft(2, '0')}',
+        sunrise: '${sunriseHour.toString().padLeft(2, '0')}:${sunriseMinute.toString().padLeft(2, '0')}',
+        dhuhr: '${dhuhrHour.toString().padLeft(2, '0')}:${dhuhrMinute.toString().padLeft(2, '0')}',
+        asr: '${asrHour.toString().padLeft(2, '0')}:${asrMinute.toString().padLeft(2, '0')}',
+        maghrib: '${maghribHour.toString().padLeft(2, '0')}:${maghribMinute.toString().padLeft(2, '0')}',
+        isha: '${ishaHour.toString().padLeft(2, '0')}:${ishaMinute.toString().padLeft(2, '0')}',
       );
       
       monthlyPrayerTimes.add(prayerTime);
     }
     
     return monthlyPrayerTimes;
+  }
+  
+  // Yılın gününü hesapla (1-366 arası)
+  int _getDayOfYear(DateTime date) {
+    final startOfYear = DateTime(date.year, 1, 1);
+    return date.difference(startOfYear).inDays + 1;
+  }
+  
+  // Mevsimsel faktör (0.0-1.0 arası)
+  // 0 = kış ortası (21 Aralık)
+  // 0.5 = ilkbahar/sonbahar (21 Mart/21 Eylül)
+  // 1 = yaz ortası (21 Haziran)
+  double _getSeasonalFactor(DateTime date) {
+    final dayOfYear = _getDayOfYear(date);
+    
+    // Yılın toplam gün sayısı (365 veya 366)
+    final daysInYear = DateTime(date.year + 1, 1, 1).difference(DateTime(date.year, 1, 1)).inDays;
+    
+    // Kuzey yarımkürede 21 Aralık (kış gündönümü) 0, 21 Haziran (yaz gündönümü) 1
+    // 21 Aralık = yaklaşık 355. gün, 21 Haziran = yaklaşık 172. gün
+    int midWinter = 355;
+    if (date.year % 4 == 0) midWinter = 356; // Artık yıl için ayarlama
+    
+    int daysSinceMidWinter = (dayOfYear - midWinter + daysInYear) % daysInYear;
+    
+    // 0 ile 1 arasında değer (yarım yıl boyunca artan, yarım yıl boyunca azalan)
+    return sin((daysSinceMidWinter / daysInYear) * 2 * 3.14159).abs();
   }
 }
