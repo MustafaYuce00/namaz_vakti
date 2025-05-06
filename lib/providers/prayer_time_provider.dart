@@ -1,208 +1,304 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:namaz_vakti/models/city.dart';
 import 'package:namaz_vakti/models/prayer_time.dart';
 import 'package:namaz_vakti/services/prayer_time_service.dart';
-import 'package:namaz_vakti/utils/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class PrayerTimeProvider extends ChangeNotifier {
-  final PrayerTimeService _service = PrayerTimeService();
+class PrayerTimeProvider with ChangeNotifier {
+  final PrayerTimeService _prayerTimeService = PrayerTimeService();
   
-  // Şehir ve ilçe listeleri
+  // Cities data
   List<City> _cities = [];
-  List<City> _districts = [];
-  
-  // Seçilen şehir ve ilçe
-  City? _selectedCity;
-  City? _selectedDistrict;
-  
-  // Namaz vakitleri
-  PrayerTime? _currentPrayerTime;
-  List<PrayerTime> _monthlyPrayerTimes = [];
-  
-  // Yükleme durumları
-  bool _isLoading = false;
-  String _errorMessage = '';
-  
-  // Getters
   List<City> get cities => _cities;
-  List<City> get districts => _districts;
-  City? get selectedCity => _selectedCity;
-  City? get selectedDistrict => _selectedDistrict;
-  PrayerTime? get currentPrayerTime => _currentPrayerTime;
-  List<PrayerTime> get monthlyPrayerTimes => _monthlyPrayerTimes;
-  bool get isLoading => _isLoading;
-  String get errorMessage => _errorMessage;
+  bool _isLoadingCities = false;
+  bool get isLoadingCities => _isLoadingCities;
+  String _cityError = '';
+  String get cityError => _cityError;
   
-  // Provider başlatıldığında çağrılacak
+  // Districts data
+  List<City> _districts = [];
+  List<City> get districts => _districts;
+  bool _isLoadingDistricts = false;
+  bool get isLoadingDistricts => _isLoadingDistricts;
+  String _districtError = '';
+  String get districtError => _districtError;
+  
+  // Selected location
+  City? _selectedCity;
+  City? get selectedCity => _selectedCity;
+  City? _selectedDistrict;
+  City? get selectedDistrict => _selectedDistrict;
+  
+  // Prayer times data
+  List<PrayerTime> _monthlyPrayerTimes = [];
+  List<PrayerTime> get monthlyPrayerTimes => _monthlyPrayerTimes;
+  PrayerTime? _dailyPrayerTime;
+  PrayerTime? get dailyPrayerTime => _dailyPrayerTime;
+  bool _isLoadingPrayerTimes = false;
+  bool get isLoadingPrayerTimes => _isLoadingPrayerTimes;
+  String _prayerTimeError = '';
+  String get prayerTimeError => _prayerTimeError;
+  
+  // Initialize provider data
   Future<void> initialize() async {
     await _loadSavedLocation();
-    await fetchCities();
-    
-    if (_selectedCity != null) {
-      await fetchDistricts(_selectedCity!.id);
-      
-      if (_selectedDistrict != null) {
-        await fetchDailyPrayerTimes();
-        await fetchMonthlyPrayerTimes();
-      }
+    if (_selectedCity != null && _selectedDistrict != null) {
+      await fetchPrayerTimes();
+    } else {
+      await fetchCities();
     }
   }
   
-  // Kaydedilmiş konum bilgilerini yükle
-  Future<void> _loadSavedLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    final cityIdString = prefs.getString(AppConstants.prefSelectedCity);
-    final districtIdString = prefs.getString(AppConstants.prefSelectedDistrict);
-    
-    if (cityIdString != null && districtIdString != null) {
-      try {
-        final cityData = cityIdString.split('|');
-        final districtData = districtIdString.split('|');
-        
-        if (cityData.length >= 2 && districtData.length >= 2) {
-          _selectedCity = City(
-            id: int.parse(cityData[0]),
-            name: cityData[1],
-          );
-          
-          _selectedDistrict = City(
-            id: int.parse(districtData[0]),
-            name: districtData[1],
-            parentId: int.parse(cityData[0]),
-          );
-        }
-      } catch (e) {
-        debugPrint('Konum bilgisi yüklenirken hata: $e');
-      }
-    }
-  }
-  
-  // Konum bilgilerini kaydet
-  Future<void> _saveLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    if (_selectedCity != null) {
-      await prefs.setString(
-        AppConstants.prefSelectedCity, 
-        '${_selectedCity!.id}|${_selectedCity!.name}'
-      );
-    }
-    
-    if (_selectedDistrict != null) {
-      await prefs.setString(
-        AppConstants.prefSelectedDistrict,
-        '${_selectedDistrict!.id}|${_selectedDistrict!.name}'
-      );
-    }
-  }
-  
-  // İlleri getir
+  // Load cities from API
   Future<void> fetchCities() async {
-    _setLoading(true);
+    _isLoadingCities = true;
+    _cityError = '';
+    notifyListeners();
     
     try {
-      _cities = await _service.getCities();
-      notifyListeners();
+      _cities = await _prayerTimeService.getCities();
+      _cityError = '';
     } catch (e) {
-      _setError('Şehir listesi alınamadı: $e');
+      debugPrint('Error in fetchCities: $e');
+      _cityError = e.toString();
+      _cities = [];
     } finally {
-      _setLoading(false);
+      _isLoadingCities = false;
+      notifyListeners();
     }
   }
   
-  // İlçeleri getir
-  Future<void> fetchDistricts(int cityId) async {
-    _setLoading(true);
+  // Load districts for a city from API
+  Future<void> fetchDistricts(String cityId) async {
+    _isLoadingDistricts = true;
+    _districtError = '';
+    notifyListeners();
     
     try {
-      _districts = await _service.getDistricts(cityId);
-      notifyListeners();
+      _districts = await _prayerTimeService.getDistricts(cityId);
+      _districtError = '';
     } catch (e) {
-      _setError('İlçe listesi alınamadı: $e');
+      debugPrint('Error in fetchDistricts: $e');
+      _districtError = e.toString();
+      _districts = [];
     } finally {
-      _setLoading(false);
+      _isLoadingDistricts = false;
+      notifyListeners();
     }
   }
   
-  // Şehir seç
-  Future<void> selectCity(City city) async {
+  // Set selected city
+  Future<void> setSelectedCity(City city) async {
     _selectedCity = city;
     _selectedDistrict = null;
-    notifyListeners();
-    
     await fetchDistricts(city.id);
-    await _saveLocation();
+    notifyListeners();
   }
   
-  // İlçe seç
-  Future<void> selectDistrict(City district) async {
+  // Set selected district
+  Future<void> setSelectedDistrict(City district) async {
     _selectedDistrict = district;
-    notifyListeners();
     
+    // Save selected location
     await _saveLocation();
-    await fetchDailyPrayerTimes();
-    await fetchMonthlyPrayerTimes();
-  }
-  
-  // Günlük namaz vakitlerini getir
-  Future<void> fetchDailyPrayerTimes() async {
-    if (_selectedCity == null || _selectedDistrict == null) {
-      return;
-    }
     
-    _setLoading(true);
+    // Fetch prayer times for the selected district
+    await fetchPrayerTimes();
     
-    try {
-      _currentPrayerTime = await _service.getDailyPrayerTimes(
-        _selectedCity!.id,
-        _selectedDistrict!.id,
-      );
-      notifyListeners();
-    } catch (e) {
-      _setError('Namaz vakitleri alınamadı: $e');
-    } finally {
-      _setLoading(false);
-    }
-  }
-  
-  // Aylık namaz vakitlerini getir
-  Future<void> fetchMonthlyPrayerTimes() async {
-    if (_selectedCity == null || _selectedDistrict == null) {
-      return;
-    }
-    
-    _setLoading(true);
-    
-    try {
-      final now = DateTime.now();
-      _monthlyPrayerTimes = await _service.getMonthlyPrayerTimes(
-        _selectedCity!.id,
-        _selectedDistrict!.id,
-        now.year,
-        now.month,
-      );
-      notifyListeners();
-    } catch (e) {
-      _setError('Aylık namaz vakitleri alınamadı: $e');
-    } finally {
-      _setLoading(false);
-    }
-  }
-  
-  // Loading durumunu güncelle
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    if (loading) {
-      _errorMessage = '';
-    }
     notifyListeners();
   }
   
-  // Hata mesajını güncelle
-  void _setError(String error) {
-    _errorMessage = error;
+  // Fetch prayer times from API
+  Future<void> fetchPrayerTimes() async {
+    if (_selectedDistrict == null) {
+      debugPrint('Cannot fetch prayer times: No district selected');
+      _prayerTimeError = 'Lütfen önce bir şehir ve ilçe seçin';
+      notifyListeners();
+      return;
+    }
+    
+    _isLoadingPrayerTimes = true;
+    _prayerTimeError = '';
     notifyListeners();
+    
+    try {
+      _monthlyPrayerTimes = await _prayerTimeService.getMonthlyPrayerTimes(_selectedDistrict!.id);
+      _dailyPrayerTime = await _prayerTimeService.getDailyPrayerTime(_selectedDistrict!.id);
+      _prayerTimeError = '';
+    } catch (e) {
+      debugPrint('Error in fetchPrayerTimes: $e');
+      _prayerTimeError = e.toString();
+      _monthlyPrayerTimes = [];
+      _dailyPrayerTime = null;
+    } finally {
+      _isLoadingPrayerTimes = false;
+      notifyListeners();
+    }
+  }
+  
+  // Save selected location to SharedPreferences
+  Future<void> _saveLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_selectedCity != null) {
+        await prefs.setString('selectedCityId', _selectedCity!.id);
+        await prefs.setString('selectedCityName', _selectedCity!.name);
+        await prefs.setString('selectedCityNameEn', _selectedCity!.nameEn);
+      }
+      
+      if (_selectedDistrict != null) {
+        await prefs.setString('selectedDistrictId', _selectedDistrict!.id);
+        await prefs.setString('selectedDistrictName', _selectedDistrict!.name);
+        await prefs.setString('selectedDistrictNameEn', _selectedDistrict!.nameEn);
+        if (_selectedDistrict!.parentId != null) {
+          await prefs.setString('selectedDistrictParentId', _selectedDistrict!.parentId!);
+        }
+      }
+      debugPrint('Location saved to preferences');
+    } catch (e) {
+      debugPrint('Error saving location to preferences: $e');
+    }
+  }
+  
+  // Load saved location from SharedPreferences
+  Future<void> _loadSavedLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      final cityId = prefs.getString('selectedCityId');
+      final cityName = prefs.getString('selectedCityName');
+      final cityNameEn = prefs.getString('selectedCityNameEn');
+      
+      final districtId = prefs.getString('selectedDistrictId');
+      final districtName = prefs.getString('selectedDistrictName');
+      final districtNameEn = prefs.getString('selectedDistrictNameEn');
+      final districtParentId = prefs.getString('selectedDistrictParentId');
+      
+      if (cityId != null && cityName != null && cityNameEn != null) {
+        _selectedCity = City(
+          id: cityId,
+          name: cityName,
+          nameEn: cityNameEn,
+        );
+        
+        if (districtId != null && districtName != null && districtNameEn != null) {
+          _selectedDistrict = City(
+            id: districtId,
+            name: districtName,
+            nameEn: districtNameEn,
+            parentId: districtParentId,
+          );
+        }
+        
+        debugPrint('Loaded saved location: ${_selectedCity?.name}, ${_selectedDistrict?.name}');
+        
+        // Load districts for the selected city
+        if (_selectedCity != null) {
+          await fetchDistricts(_selectedCity!.id);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading saved location: $e');
+    }
+  }
+  
+  // Clear saved location
+  Future<void> clearLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('selectedCityId');
+      await prefs.remove('selectedCityName');
+      await prefs.remove('selectedCityNameEn');
+      await prefs.remove('selectedDistrictId');
+      await prefs.remove('selectedDistrictName');
+      await prefs.remove('selectedDistrictNameEn');
+      await prefs.remove('selectedDistrictParentId');
+      
+      _selectedCity = null;
+      _selectedDistrict = null;
+      _monthlyPrayerTimes = [];
+      _dailyPrayerTime = null;
+      
+      notifyListeners();
+      
+      debugPrint('Location cleared from preferences');
+    } catch (e) {
+      debugPrint('Error clearing location from preferences: $e');
+    }
+  }
+  
+  // Get next prayer time information
+  Map<String, dynamic> getNextPrayerInfo() {
+    if (_dailyPrayerTime == null) {
+      return {
+        'name': 'Bilinmiyor',
+        'time': '--:--',
+        'remaining': 'Bilinmiyor',
+        'index': -1,
+      };
+    }
+    
+    final now = DateTime.now();
+    final currentTimeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    
+    final times = [
+      {'name': 'İmsak', 'time': _dailyPrayerTime!.fajr},
+      {'name': 'Güneş', 'time': _dailyPrayerTime!.sunrise},
+      {'name': 'Öğle', 'time': _dailyPrayerTime!.dhuhr},
+      {'name': 'İkindi', 'time': _dailyPrayerTime!.asr},
+      {'name': 'Akşam', 'time': _dailyPrayerTime!.maghrib},
+      {'name': 'Yatsı', 'time': _dailyPrayerTime!.isha},
+    ];
+    
+    int nextIndex = -1;
+    for (int i = 0; i < times.length; i++) {
+      if (currentTimeStr.compareTo(times[i]['time']!) < 0) {
+        nextIndex = i;
+        break;
+      }
+    }
+    
+    // If no next prayer time today, first prayer time tomorrow
+    if (nextIndex == -1) {
+      nextIndex = 0;
+    }
+    
+    final nextPrayerName = times[nextIndex]['name'];
+    final nextPrayerTime = times[nextIndex]['time'];
+    
+    // Calculate remaining time
+    final nextPrayerHour = int.parse(nextPrayerTime!.split(':')[0]);
+    final nextPrayerMinute = int.parse(nextPrayerTime.split(':')[1]);
+    
+    DateTime nextPrayerDateTime = DateTime(
+      now.year, 
+      now.month, 
+      now.day, 
+      nextPrayerHour, 
+      nextPrayerMinute,
+    );
+    
+    // If next prayer is tomorrow's Fajr
+    if (nextIndex == 0 && currentTimeStr.compareTo(times.last['time']!) >= 0) {
+      nextPrayerDateTime = nextPrayerDateTime.add(const Duration(days: 1));
+    }
+    
+    final difference = nextPrayerDateTime.difference(now);
+    final hours = difference.inHours;
+    final minutes = difference.inMinutes % 60;
+    
+    String remaining = '';
+    if (hours > 0) {
+      remaining = '$hours saat $minutes dakika';
+    } else {
+      remaining = '$minutes dakika';
+    }
+    
+    return {
+      'name': nextPrayerName,
+      'time': nextPrayerTime,
+      'remaining': remaining,
+      'index': nextIndex,
+    };
   }
 }

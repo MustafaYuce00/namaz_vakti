@@ -1,15 +1,11 @@
 class ApiConstants {
-  // Diyanet API endpoint
-  static const String baseUrl = 'https://api.diyanet.gov.tr/';
+  // New API endpoints
+  static const String baseUrl = 'https://ezanvakti.emushaf.net';
   
-  // Endpoint'ler
-  static const String citiesEndpoint = 'cities';
-  static const String districtsEndpoint = 'districts';
-  static const String prayerTimesEndpoint = 'prayer-times/daily';
-  static const String monthlyPrayerTimesEndpoint = 'prayer-times/monthly';
-  
-  // API Key parametreleri
-  static const String apiKey = 'YOUR_API_KEY';
+  // Endpoints
+  static const String citiesEndpoint = '/sehirler/2';
+  static const String districtsEndpoint = '/ilceler';
+  static const String prayerTimesEndpoint = '/vakitler';
 }
 
 class AppConstants {

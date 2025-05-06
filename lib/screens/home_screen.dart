@@ -41,7 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<PrayerTimeProvider>(context);
-    final currentPrayer = provider.currentPrayerTime;
     
     return Scaffold(
       appBar: AppBar(
@@ -71,9 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: provider.isLoading
+      body: provider.isLoadingPrayerTimes
           ? const Center(child: CircularProgressIndicator())
-          : provider.errorMessage.isNotEmpty
+          : provider.prayerTimeError.isNotEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -84,14 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        provider.errorMessage,
+                        provider.prayerTimeError,
                         style: Theme.of(context).textTheme.bodyLarge,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () {
-                          provider.fetchDailyPrayerTimes();
+                          provider.fetchPrayerTimes();
                         },
                         child: const Text('Tekrar Dene'),
                       ),
@@ -134,27 +133,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     )
-                  : currentPrayer == null
+                  : provider.dailyPrayerTime == null
                       ? const Center(
                           child: Text('Namaz vakti bulunamadı!'),
                         )
-                      : _buildPrayerTimeScreen(context, provider, currentPrayer),
+                      : _buildPrayerTimeScreen(context, provider),
     );
   }
   
   Widget _buildPrayerTimeScreen(
     BuildContext context, 
     PrayerTimeProvider provider,
-    PrayerTime currentPrayer,
   ) {
-    // Bir sonraki namaz vaktini hesapla
-    final nextPrayerName = currentPrayer.getNextPrayerTime(_currentTime);
-    // Kalan süreyi hesapla
-    final remainingTime = currentPrayer.getRemainingTime(_currentTime, nextPrayerName);
+    final currentPrayer = provider.dailyPrayerTime!;
+    
+    // Bir sonraki namaz vaktini ve kalan süreyi hesapla
+    final nextPrayerInfo = provider.getNextPrayerInfo();
+    final nextPrayerName = nextPrayerInfo['name'];
+    final remainingTime = nextPrayerInfo['remaining'];
     
     return RefreshIndicator(
       onRefresh: () async {
-        await provider.fetchDailyPrayerTimes();
+        await provider.fetchPrayerTimes();
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),

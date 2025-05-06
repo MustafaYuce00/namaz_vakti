@@ -79,11 +79,13 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
           Expanded(
             child: Consumer<PrayerTimeProvider>(
               builder: (context, provider, child) {
-                if (provider.isLoading) {
+                if (_isSelectingCity && provider.isLoadingCities) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (!_isSelectingCity && provider.isLoadingDistricts) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 
-                if (provider.errorMessage.isNotEmpty) {
+                if (_isSelectingCity && provider.cityError.isNotEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -94,16 +96,39 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          provider.errorMessage,
+                          provider.cityError,
                           style: Theme.of(context).textTheme.bodyLarge,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () {
-                            if (_isSelectingCity) {
-                              provider.fetchCities();
-                            } else if (provider.selectedCity != null) {
+                            provider.fetchCities();
+                          },
+                          child: const Text('Tekrar Dene'),
+                        ),
+                      ],
+                    ),
+                  );
+                } else if (!_isSelectingCity && provider.districtError.isNotEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Hata oluştu:',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          provider.districtError,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (provider.selectedCity != null) {
                               provider.fetchDistricts(provider.selectedCity!.id);
                             }
                           },
@@ -162,7 +187,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
             title: Text(city.name),
             trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
             onTap: () async {
-              await provider.selectCity(city);
+              await provider.setSelectedCity(city);
               setState(() {
                 _isSelectingCity = false;
                 _searchQuery = '';
@@ -212,8 +237,62 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
             title: Text(district.name),
             trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
             onTap: () async {
-              await provider.selectDistrict(district);
-              Navigator.pop(context);
+              // İlçe seçiminde loading göstergesini etkinleştir
+              final loadingDialog = showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Dialog(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  child: Center(
+                    child: Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text('Namaz vakitleri yükleniyor...'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              
+              try {
+                // İlçeyi seçme işlemi
+                await provider.setSelectedDistrict(district);
+                
+                // API'den veri yüklendikten sonra dialog'u kapat
+                if (context.mounted) {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  // Ana sayfaya dön
+                  Navigator.of(context).pop();
+                }
+              } catch (e) {
+                // Hata durumunda dialog'u kapat ve uyarı göster
+                if (context.mounted) {
+                  Navigator.of(context, rootNavigator: true).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Namaz vakitleri yüklenemedi: $e'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 5),
+                      action: SnackBarAction(
+                        label: 'Tekrar Dene',
+                        onPressed: () async {
+                          if (provider.selectedDistrict != null) {
+                            await provider.fetchPrayerTimes();
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                }
+              }
             },
           ),
         );

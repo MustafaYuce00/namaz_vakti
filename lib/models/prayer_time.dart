@@ -7,6 +7,14 @@ class PrayerTime {
   final String maghrib;  // Akşam
   final String isha;     // Yatsı
   final String qibla;    // Kıble saati (varsa)
+  
+  // Additional properties from API
+  final String hijriDateShort;    // HicriTarihKisa
+  final String hijriDateLong;     // HicriTarihUzun
+  final String gregorianDateShort; // MiladiTarihKisa
+  final String gregorianDateLong;  // MiladiTarihUzun
+  final String moonPhaseUrl;      // AyinSekliURL
+  final int greenwichMeanTime;    // GreenwichOrtalamaZamani
 
   PrayerTime({
     required this.date,
@@ -17,19 +25,51 @@ class PrayerTime {
     required this.maghrib,
     required this.isha,
     this.qibla = '',
+    this.hijriDateShort = '',
+    this.hijriDateLong = '',
+    this.gregorianDateShort = '',
+    this.gregorianDateLong = '',
+    this.moonPhaseUrl = '',
+    this.greenwichMeanTime = 3, // Default for Turkey
   });
 
   factory PrayerTime.fromJson(Map<String, dynamic> json) {
-    return PrayerTime(
-      date: json['date'] as String,
-      fajr: json['fajr'] as String,
-      sunrise: json['sunrise'] as String,
-      dhuhr: json['dhuhr'] as String,
-      asr: json['asr'] as String,
-      maghrib: json['maghrib'] as String,
-      isha: json['isha'] as String,
-      qibla: json['qibla'] as String? ?? '',
-    );
+    // Check if we're using the legacy format or the new API format
+    if (json.containsKey('Imsak')) {
+      // New API format
+      return PrayerTime(
+        date: json['MiladiTarihKisa'] ?? '',
+        fajr: json['Imsak'] ?? '',
+        sunrise: json['Gunes'] ?? '',
+        dhuhr: json['Ogle'] ?? '',
+        asr: json['Ikindi'] ?? '',
+        maghrib: json['Aksam'] ?? '',
+        isha: json['Yatsi'] ?? '',
+        qibla: json['KibleSaati'] ?? '',
+        hijriDateShort: json['HicriTarihKisa'] ?? '',
+        hijriDateLong: json['HicriTarihUzun'] ?? '',
+        gregorianDateShort: json['MiladiTarihKisa'] ?? '',
+        gregorianDateLong: json['MiladiTarihUzun'] ?? '',
+        moonPhaseUrl: json['AyinSekliURL'] ?? '',
+        greenwichMeanTime: json['GreenwichOrtalamaZamani'] != null 
+            ? (json['GreenwichOrtalamaZamani'] is int 
+                ? json['GreenwichOrtalamaZamani'] 
+                : double.parse(json['GreenwichOrtalamaZamani'].toString()).toInt()) 
+            : 3,
+      );
+    } else {
+      // Legacy format
+      return PrayerTime(
+        date: json['date'] as String,
+        fajr: json['fajr'] as String,
+        sunrise: json['sunrise'] as String,
+        dhuhr: json['dhuhr'] as String,
+        asr: json['asr'] as String,
+        maghrib: json['maghrib'] as String,
+        isha: json['isha'] as String,
+        qibla: json['qibla'] as String? ?? '',
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -42,6 +82,12 @@ class PrayerTime {
       'maghrib': maghrib,
       'isha': isha,
       'qibla': qibla,
+      'hijriDateShort': hijriDateShort,
+      'hijriDateLong': hijriDateLong,
+      'gregorianDateShort': gregorianDateShort,
+      'gregorianDateLong': gregorianDateLong,
+      'moonPhaseUrl': moonPhaseUrl,
+      'greenwichMeanTime': greenwichMeanTime,
     };
   }
 
