@@ -1,3 +1,5 @@
+import 'package:namaz_vakti/utils/constants.dart';
+
 class City {
   final String id;
   final String name;
@@ -13,9 +15,11 @@ class City {
 
   // Factory constructor for city from API
   factory City.fromJson(Map<String, dynamic> json) {
+    String name = json['SehirAdi'] ?? json['name'] ?? '';
+    
     return City(
       id: json['SehirID'] ?? json['id'] ?? '',
-      name: json['SehirAdi'] ?? json['name'] ?? '',
+      name: StringHelper.fixTurkishChars(name),
       nameEn: json['SehirAdiEn'] ?? json['nameEn'] ?? '',
       parentId: json['parentId'],
     );
@@ -23,9 +27,11 @@ class City {
 
   // Factory constructor for district from API
   factory City.districtFromJson(Map<String, dynamic> json) {
+    String name = json['IlceAdi'] ?? json['name'] ?? '';
+    
     return City(
       id: json['IlceID'] ?? json['id'] ?? '',
-      name: json['IlceAdi'] ?? json['name'] ?? '',
+      name: StringHelper.fixTurkishChars(name),
       nameEn: json['IlceAdiEn'] ?? json['nameEn'] ?? '',
       parentId: json['parentId'],
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:namaz_vakti/models/city.dart';
 import 'package:namaz_vakti/models/prayer_time.dart';
+import 'package:namaz_vakti/utils/constants.dart';
 
 class PrayerTimeService {
   final String baseUrl = 'https://ezanvakti.emushaf.net';
@@ -13,6 +14,7 @@ class PrayerTimeService {
       debugPrint('Fetching cities from API: $baseUrl/sehirler/2');
       final response = await http.get(
         Uri.parse('$baseUrl/sehirler/2'),
+        headers: {'Accept-Charset': 'utf-8'},
       ).timeout(
         const Duration(seconds: 15),
         onTimeout: () {
@@ -22,9 +24,29 @@ class PrayerTimeService {
       );
       
       if (response.statusCode == 200) {
-        final List<dynamic> citiesJson = json.decode(response.body);
-        debugPrint('Cities fetched: ${citiesJson.length}');
-        return citiesJson.map((city) => City.fromJson(city)).toList();
+        // Debug için karakter kodlama bilgisini yazdır
+        debugPrint('Response encoding: ${response.headers['content-type']}');
+        
+        // Doğru kodlama ile decode etmeye çalış
+        final String responseBody = utf8.decode(response.bodyBytes);
+        
+        // Debug için ilk birkaç şehir adını yazdır
+        try {
+          final List<dynamic> citiesJson = json.decode(responseBody);
+          debugPrint('Cities fetched: ${citiesJson.length}');
+          
+          if (citiesJson.isNotEmpty) {
+            for (int i = 0; i < min(5, citiesJson.length); i++) {
+              String cityName = citiesJson[i]['SehirAdi'] ?? 'Unknown';
+              StringHelper.debugEncodingIssue(cityName);
+            }
+          }
+          
+          return citiesJson.map((city) => City.fromJson(city)).toList();
+        } catch (e) {
+          debugPrint('Error parsing cities JSON: $e');
+          throw Exception('Şehirler verisi işlenirken hata oluştu: $e');
+        }
       } else {
         debugPrint('Failed to fetch cities: ${response.statusCode}');
         throw Exception('Şehirler yüklenemedi: ${response.statusCode}');
@@ -41,6 +63,7 @@ class PrayerTimeService {
       debugPrint('Fetching districts from API: $baseUrl/ilceler/$cityId');
       final response = await http.get(
         Uri.parse('$baseUrl/ilceler/$cityId'),
+        headers: {'Accept-Charset': 'utf-8'},
       ).timeout(
         const Duration(seconds: 15),
         onTimeout: () {
@@ -50,9 +73,28 @@ class PrayerTimeService {
       );
       
       if (response.statusCode == 200) {
-        final List<dynamic> districtsJson = json.decode(response.body);
-        debugPrint('Districts fetched: ${districtsJson.length}');
-        return districtsJson.map((district) => City.districtFromJson(district)).toList();
+        // Debug için karakter kodlama bilgisini yazdır
+        debugPrint('Response encoding: ${response.headers['content-type']}');
+        
+        // Doğru kodlama ile decode etmeye çalış
+        final String responseBody = utf8.decode(response.bodyBytes);
+        
+        try {
+          final List<dynamic> districtsJson = json.decode(responseBody);
+          debugPrint('Districts fetched: ${districtsJson.length}');
+          
+          if (districtsJson.isNotEmpty) {
+            for (int i = 0; i < min(5, districtsJson.length); i++) {
+              String districtName = districtsJson[i]['IlceAdi'] ?? 'Unknown';
+              StringHelper.debugEncodingIssue(districtName);
+            }
+          }
+          
+          return districtsJson.map((district) => City.districtFromJson(district)).toList();
+        } catch (e) {
+          debugPrint('Error parsing districts JSON: $e');
+          throw Exception('İlçeler verisi işlenirken hata oluştu: $e');
+        }
       } else {
         debugPrint('Failed to fetch districts: ${response.statusCode}');
         throw Exception('İlçeler yüklenemedi: ${response.statusCode}');
