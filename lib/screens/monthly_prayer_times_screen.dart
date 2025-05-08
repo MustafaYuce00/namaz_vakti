@@ -174,8 +174,8 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
                       _buildPrayerTimeRow('Akşam', prayerTime.maghrib, AppTheme.maghribColor),
                       _buildPrayerTimeRow('Yatsı', prayerTime.isha, AppTheme.ishaColor),
                       // Add Qibla time if available
-                      if (prayerTime.qibla.isNotEmpty)
-                        _buildPrayerTimeRow('Kıble', prayerTime.qibla, Colors.purple),
+                    /*  if (prayerTime.qibla.isNotEmpty)
+                        _buildPrayerTimeRow('Kıble', prayerTime.qibla, Colors.purple),*/
                     ],
                   ),
                 ),
