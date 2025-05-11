@@ -40,10 +40,23 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
+	</array>	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Konum izni açıklaması -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Kıble yönünü hesaplamak için konum bilginize ihtiyaç duyuyoruz</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Kıble yönünü hesaplamak için konum bilginize ihtiyaç duyuyoruz</string>
+	<!-- iOS 14+ için ayrıca hassas konum izni -->
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>KibleYonu</key>
+		<string>Kıble yönünü doğru hesaplamak için hassas konum bilginize ihtiyaç duyuyoruz</string>
+	</dict>
+	<!-- Pusula sensörü izni -->
+	<key>NSMotionUsageDescription</key>
+	<string>Kıble yönünü göstermek için cihazınızın pusula sensörüne ihtiyaç duyuyoruz</string>
 </dict>
 </plist>

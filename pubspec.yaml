@@ -43,10 +43,10 @@ dependencies:
   
   # Durum yönetimi
   provider: ^6.1.1
-  
-  # Konum servisleri
+    # Konum servisleri
   geolocator: ^11.0.0
   geocoding: ^2.1.1
+  flutter_compass: ^0.8.1
   
   # Yerel veri saklama
   shared_preferences: ^2.2.2

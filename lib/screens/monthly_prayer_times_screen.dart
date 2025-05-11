@@ -169,13 +169,12 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
                     children: [
                       _buildPrayerTimeRow('İmsak', prayerTime.fajr, AppTheme.fajrColor),
                       _buildPrayerTimeRow('Güneş', prayerTime.sunrise, AppTheme.sunriseColor),
-                      _buildPrayerTimeRow('Öğle', prayerTime.dhuhr, AppTheme.dhuhrColor),
-                      _buildPrayerTimeRow('İkindi', prayerTime.asr, AppTheme.asrColor),
+                      _buildPrayerTimeRow('Öğle', prayerTime.dhuhr, AppTheme.dhuhrColor),                      _buildPrayerTimeRow('İkindi', prayerTime.asr, AppTheme.asrColor),
                       _buildPrayerTimeRow('Akşam', prayerTime.maghrib, AppTheme.maghribColor),
                       _buildPrayerTimeRow('Yatsı', prayerTime.isha, AppTheme.ishaColor),
                       // Add Qibla time if available 
-                    /*  if (prayerTime.qibla.isNotEmpty)
-                        _buildPrayerTimeRow('Kıble', prayerTime.qibla, Colors.purple),*/
+                      if (prayerTime.qibla.isNotEmpty)
+                        _buildPrayerTimeRow('Kıble', prayerTime.qibla, Colors.purple),
                     ],
                   ),
                 ),

@@ -6,6 +6,7 @@ import 'package:namaz_vakti/models/prayer_time.dart';
 import 'package:namaz_vakti/providers/prayer_time_provider.dart';
 import 'package:namaz_vakti/screens/location_selection_screen.dart';
 import 'package:namaz_vakti/screens/monthly_prayer_times_screen.dart';
+import 'package:namaz_vakti/screens/qibla_screen.dart';
 import 'package:namaz_vakti/theme/app_theme.dart';
 import 'package:namaz_vakti/utils/constants.dart';
 import 'package:namaz_vakti/widgets/prayer_time_card.dart';
@@ -43,11 +44,23 @@ class _HomeScreenState extends State<HomeScreen> {
     final provider = Provider.of<PrayerTimeProvider>(context);
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Namaz Vakitleri'),
+      appBar: AppBar(        title: const Text('Namaz Vakitleri'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.explore),
+            tooltip: 'Kıble Yönü',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const QiblaScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.calendar_month),
+            tooltip: 'Aylık Vakitler',
             onPressed: () {
               Navigator.push(
                 context,
@@ -59,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.location_on),
+            tooltip: 'Konum Seç',
             onPressed: () {
               Navigator.push(
                 context,
