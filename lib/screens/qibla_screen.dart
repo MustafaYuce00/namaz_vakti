@@ -120,7 +120,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
     final kaabaLatRad = kaabaLatitude * (math.pi / 180);
     final kaabaLongRad = kaabaLongitude * (math.pi / 180);
     
-    // Kıble yönünü hesaplama formülü
+    // Kıble yönünü hesaplama formülü 
     final y = math.sin(kaabaLongRad - longRad);
     final x = math.cos(latRad) * math.tan(kaabaLatRad) - 
               math.sin(latRad) * math.cos(kaabaLongRad - longRad);
