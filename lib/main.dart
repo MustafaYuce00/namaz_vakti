@@ -40,3 +40,4 @@ class MyApp extends StatelessWidget {
   }
 }
 // bazı hatalar olabilir test edeceğim kıble yazıyor ama kıble yok ve aylıkta da kıble yazıyor ama kıble yok ve aylıkta da
+// ve bir aylık veriyi zaten alınıyor bu yüzden provider içinde bir kez alınıp shared preference'e kaydedilmesi gerekiyor
