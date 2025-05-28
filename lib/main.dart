@@ -40,3 +40,4 @@ class MyApp extends StatelessWidget {
   }
 }
 // ve bir aylık veriyi zaten alınıyor bu yüzden provider içinde bir kez alınıp shared preference'e kaydedilmesi gerekiyor
+//sa 
